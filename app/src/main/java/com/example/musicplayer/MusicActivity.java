@@ -16,6 +16,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 
@@ -60,44 +61,51 @@ public class MusicActivity extends AppCompatActivity {
         play_pause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mp!=null && mp.isPlaying()){
-                    mp.pause();
-                }
-                if (state.equals("play")) {
-                    state = "pause";
+
+                if(state.equals("play")){
+                    state="pause";
                     play_pause.setImageResource(R.drawable.pause);
                     if(mp!=null){
-                        if(mp.isPlaying()==false){
-                            mp.start();
-                        }
-                        else{
+                        if(mp.isPlaying()){
                             mp.reset();
                             mp.start();
                         }
-                    }
-                    mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                        @Override
-                        public void onCompletion(MediaPlayer mp) {
-                            mp.release();
+                        else{
+                            mp.start();
                         }
-                    });
-                } else if (state.equals("pause")) {
-                    state = "play";
+                    }
+                    else{
+                        mp.start();
+                    }
+                }else{
+                    state="play";
                     play_pause.setImageResource(R.drawable.play);
                     mp.pause();
-
                 }
             }
         });
 
+
+        mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+                System.out.println("chla");
+                seekBar.setProgress(0);
+                mp.reset();
+                if(state.equals("pause")){
+                    play_pause.setImageResource(R.drawable.play);
+                }
+            }
+        });
+
+
         next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mp!=null)mp.reset();
-                if(position<SongData.getInstance().getListOfSongs().size()) {
+                if(position<SongData.getInstance().getListOfSongs().size()-1) {
                     Song nextSong = SongData.getInstance().getListOfSongs().get(position + 1);
-                    prepareSong(nextSong);
                     position=position+1;
+                    prepareSong(nextSong);
                 }
                 else{
                     Log.v("listOfSongs: ","No Song exist in this position");
@@ -105,10 +113,11 @@ public class MusicActivity extends AppCompatActivity {
             }
         });
 
+
         prev.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(position>=0){
+                if(position>0){
                     Song song= SongData.getInstance().getListOfSongs().get(position-1);
                     if(mp!=null){
                         mp.release();
@@ -116,9 +125,6 @@ public class MusicActivity extends AppCompatActivity {
                     }
                     position-=1;
                     prepareSong(song);
-                }
-                else{
-                    Log.v("listOfSongs: ","No Song exist in this position");
                 }
             }
         });
@@ -147,18 +153,11 @@ public class MusicActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while (mp != null) {
+                while (mp != null && mp.isPlaying()) {
                     try {
-
-//                            Message message = new Message();
-//                            message.what = mp.getCurrentPosition();
-//                            handler.sendMessage(message);
 
                             seekBar.setProgress(mp.getCurrentPosition());
                             Thread.sleep(1000);
-
-
-
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -169,6 +168,9 @@ public class MusicActivity extends AppCompatActivity {
 
     void prepareSong(Song mySong){
         if (mySong.getUrl() != null) {
+            if(mp!=null && mp.isPlaying()){
+                mp.reset();
+            }
             state="play";
             songName.setText(mySong.getName());
             artistName.setText(mySong.getArtist());
@@ -181,7 +183,6 @@ public class MusicActivity extends AppCompatActivity {
                     mp.setDataSource(mySong.getUrl());
                     mp.prepare();
                     seekBar.setMax(mp.getDuration());
-                    mp.setLooping(true);
                     startThread();
                 } catch (IOException e) {
                     e.printStackTrace();
