@@ -1,11 +1,22 @@
 package com.example.musicplayer;
 
+import android.graphics.Bitmap;
+
 public class Song {
     String path;
     String name;
     String artist;
     String album;
     String url;
+    Bitmap bitmap;
+
+    public Bitmap getBitmap() {
+        return bitmap;
+    }
+
+    public void setBitmap(Bitmap bitmap) {
+        this.bitmap = bitmap;
+    }
 
     public String getUrl() {
         return url;

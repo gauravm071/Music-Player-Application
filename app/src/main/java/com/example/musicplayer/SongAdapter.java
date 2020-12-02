@@ -1,5 +1,6 @@
 package com.example.musicplayer;
 
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,30 +16,33 @@ import java.util.ArrayList;
 
 
 public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
-    ArrayList<Song>listOfSongs= new ArrayList<>();
+    ArrayList<Song> listOfSongs = new ArrayList<>();
     private RecyclerViewClickInterface recyclerViewClickInterface;
+
     public SongAdapter(ArrayList<Song> listOfSongs, RecyclerViewClickInterface recyclerViewClickInterface) {
         this.listOfSongs = listOfSongs;
-        this.recyclerViewClickInterface= recyclerViewClickInterface;
+        this.recyclerViewClickInterface = recyclerViewClickInterface;
     }
-
 
 
     @NonNull
     @Override
     public SongAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater layoutInflater = LayoutInflater.from(parent.getContext());
-        View view= layoutInflater.inflate(R.layout.song_item,parent,false);
+        View view = layoutInflater.inflate(R.layout.song_item, parent, false);
         return new ViewHolder(view);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     public void onBindViewHolder(@NonNull SongAdapter.ViewHolder holder, int position) {
-        Song mysong= listOfSongs.get(position);
+        Song mysong = listOfSongs.get(position);
         holder.name.setText(mysong.getName());
-//        holder.artistName.setText(mysong.getArtist());
-//        holder.imageView.setImageResource(R.drawable.song_image);
+        if (mysong.getBitmap() != null) {
+            holder.imageView.setImageBitmap(mysong.getBitmap());
+        } else {
+            holder.imageView.setImageResource(R.drawable.music_icon);
+        }
     }
 
     @Override
@@ -46,8 +50,8 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
         return listOfSongs.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder{
-        TextView name,artistName;
+    public class ViewHolder extends RecyclerView.ViewHolder {
+        TextView name, artistName;
         ImageView imageView;
 
         public ViewHolder(@NonNull View itemView) {
@@ -60,9 +64,8 @@ public class SongAdapter extends RecyclerView.Adapter<SongAdapter.ViewHolder> {
                 }
 
             });
-            name= itemView.findViewById(R.id.tvName);
-//            artistName= itemView.findViewById(R.id.tvSinger);
-//            imageView= itemView.findViewById(R.id.imageid);
+            name = itemView.findViewById(R.id.tvName);
+            imageView = itemView.findViewById(R.id.ivid);
         }
     }
 
