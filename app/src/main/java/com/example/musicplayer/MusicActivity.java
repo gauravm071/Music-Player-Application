@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -18,54 +19,75 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class MusicActivity extends AppCompatActivity {
-    TextView songName, artistName;
-    ArrayList<Song> listOfSongs;
-    static MediaPlayer mp;
-    int position, currentSongPosition, mpPrevPosition;
-    ImageView play_pause, next, prev;
-    String state = "play";
-    Boolean isplay = false, seekBarReachedToEnd = false, nextOrPrevActive = false;
-    Boolean firstTime = true;
-    SeekBar seekBar;
-    Song nextSong = null, prevSong = null;
+    static int position;
+    TextView songname, artistname;
+    ImageView next, prev, play_pause;
+    static SeekBar seekBar;
+    Song mySong;
+    Boolean firstTime=true;
+    static int currentPosition = 0;
+     String state = "pause";
+    static MediaPlayer mp = null;
+    Boolean prev_next = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_music);
-
-
-        initializeData();
-
+        // Initializing the data;
+        next = findViewById(R.id.next);
+        prev = findViewById(R.id.prev);
+        play_pause = findViewById(R.id.play_pause);
+        seekBar = findViewById(R.id.seekBar);
+        songname = findViewById(R.id.tvsongName);
+        artistname = findViewById(R.id.tvSingerName);
+        // getting the song which user wants to play
         Intent intent = getIntent();
         position = Integer.parseInt(intent.getStringExtra("position"));
         String curSong = intent.getStringExtra("user");
         Gson gson = new Gson();
-        Song mySong = gson.fromJson(curSong, Song.class);
-        songName.setText(mySong.getName());
-        System.out.println("url: " + mySong.getUrl());
-        artistName.setText(mySong.getArtist());
-        if (MusicActivity.mp != null) {
-            MusicActivity.mp.release();
-            MusicActivity.mp = null;
-            startPlaying(mySong);
+        mySong = gson.fromJson(curSong, Song.class);
+        songname.setText(mySong.getName());
+        artistname.setText(mySong.getArtist());
+        if(currentPosition!=position && mp!=null) {
+//            seekBar.setProgress(0);
+//            mp.seekTo(0);
+//            mp.release();
+            try {
+
+                startPlaying(mySong);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else if(mp!=null && currentPosition==position ){
+            play_pause.setImageResource(R.drawable.pause);
+            firstTime=false;
         }
         play_pause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (state.equals("play")) {
-                    startPlaying(mySong);
-                } else {
-                    stopPlaying();
+                if (state.equals("pause")) {
+                    try {
+                        startPlaying(mySong);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else if (state.equals("play")) {
+                    if (mp != null && mp.isPlaying()) stopPlaying();
                 }
             }
-        });
 
+        });
 
         next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                nextSong();
+                try {
+                    nextSong();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -73,16 +95,21 @@ public class MusicActivity extends AppCompatActivity {
         prev.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                prevSong();
+                try {
+                    prevSong();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (mp != null && fromUser) {
+                    mp.seekTo(progress * 1000);
+                }
             }
 
             @Override
@@ -91,236 +118,146 @@ public class MusicActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (seekBar.getMax() == seekBar.getProgress()) {
-                    seekBarReachedToEnd = true;
-                    mp.release();
-                    seekBar.setProgress(0);
-                    play_pause.setImageResource(R.drawable.play);
-                    state = "play";
-                    return;
-                }
-                if (mp != null && fromUser) {
-                    mp.seekTo(progress * 1000);
-                }
-                else{
-//
-                    Log.v("Media Player","Holds Null");
-                }
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
             }
         });
 
         Handler mHandler = new Handler();
-
-        this.runOnUiThread(new Runnable() {
-
+        //Make sure you update Seekbar on UI thread
+        MusicActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 try {
                     if (mp != null) {
                         int mCurrentPosition = mp.getCurrentPosition() / 1000;
-                        if (!isplay || currentSongPosition == position)
-                            seekBar.setProgress(mCurrentPosition);
-                        else seekBar.setProgress(0);
-                    } else {
-                        Log.v("Song", "Finished");
+                        if (!prev_next) seekBar.setProgress(mCurrentPosition);
+                        mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                            @Override
+                            public void onCompletion(MediaPlayer mp) {
+                                seekBar.setProgress(0);
+                                play_pause.setImageResource(R.drawable.play);
+                                state = "pause";
+                                mp.seekTo(0);
+                                mp = null;
+                            }
+                        });
                     }
-                    mHandler.postDelayed(this, 1000);
                 } catch (Exception e) {
-                    seekBar.setProgress(0);
-                    play_pause.setImageResource(R.drawable.play);
-                    mp = null;
-                    state = "play";
                     e.printStackTrace();
                 }
+                mHandler.postDelayed(this, 1000);
+
             }
         });
     }
 
-    private void initializeData() {
-        songName = findViewById(R.id.tvsongName);
-        artistName = findViewById(R.id.tvSingerName);
-        play_pause = findViewById(R.id.play_pause);
-        seekBar = findViewById(R.id.seekBar);
-        next = findViewById(R.id.next);
-        prev = findViewById(R.id.prev);
-    }
 
-    private void startPlaying(Song playPauseButtonSong) {
-        if (!isplay && prevSong != playPauseButtonSong && nextOrPrevActive == false) {
-            nextOrPrevActive = true;
-            songName.setText(playPauseButtonSong.getName());
-            artistName.setText(playPauseButtonSong.getArtist());
-            prepareSong(playPauseButtonSong);
-            prevSong = playPauseButtonSong;
-        } else if (isplay && currentSongPosition != position) {
-            isplay = false;
-            Song nextSong = getNextPrevSong();
-            songName.setText(nextSong.getName());
-            artistName.setText(nextSong.getArtist());
-            prepareSong(nextSong);
-            prevSong = nextSong;
-
-        } else if (isplay && currentSongPosition == position) {
-            if (state.equals("play")) {
-                state = "pause";
-                try {
-                    if (mp != null && !mp.isPlaying()) {
-                        System.out.println("mp!=null");
-                        mp.start();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                play_pause.setImageResource(R.drawable.pause);
-            }
-        } else if (seekBarReachedToEnd) {
-            seekBarReachedToEnd = false;
-            prepareSong(prevSong);
-            prevSong = prevSong;
-
+    public void startPlaying(Song song) throws IOException {
+        songname.setText(song.getName());
+        artistname.setText(song.getArtist());
+        play_pause.setImageResource(R.drawable.pause);
+        state = "play";
+        if(firstTime && mp!=null && mp.isPlaying()){
+            mp.reset();
+            mp=null;
+            mp= new MediaPlayer();
+            mp.setDataSource(song.getUrl());
+            mp.prepare();
+            mp.start();
+            play_pause.setImageResource(R.drawable.pause);
+            state="pause";
+            firstTime=false;
+            currentPosition=position;
         }
-
-        try {
-            if (mp != null && !mp.isPlaying()) {
+        else if(mp==null){
+            mp= new MediaPlayer();
+            mp.setDataSource(song.getUrl());
+            mp.prepare();
+            mp.start();
+            currentPosition=position;
+            state="pause";
+            play_pause.setImageResource(R.drawable.pause);
+        }
+        else{
+            if(mp!=null && !mp.isPlaying()){
                 mp.start();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            else{
+                stopPlaying();
+            }
         }
-        state = "pause";
-        play_pause.setImageResource(R.drawable.pause);
-        Handler mHandler = new Handler();
-        this.runOnUiThread(new Runnable() {
+    }
 
+    public void stopPlaying() {
+        play_pause.setImageResource(R.drawable.play);
+        state = "pause";
+        mp.pause();
+    }
+
+    public void nextSong() throws IOException {
+        if (position + 1 < SongData.getInstance().getListOfSongs().size()) {
+            mySong = SongData.getInstance().getListOfSongs().get(position + 1);
+            songname.setText(mySong.getName());
+            artistname.setText(mySong.getArtist());
+            position++;
+            songname.setText(mySong.getName());
+            artistname.setText(mySong.getArtist());
+            mp.reset();
+            mp.setDataSource(mySong.getUrl());
+            mp.prepare();
+            mp.start();
+            state = "play";
+            play_pause.setImageResource(R.drawable.pause);
+        }
+    }
+
+    public void prevSong() throws IOException {
+        if (position - 1 >= 0) {
+            mySong = SongData.getInstance().getListOfSongs().get(position - 1);
+            songname.setText(mySong.getName());
+            artistname.setText(mySong.getArtist());
+            position--;
+            songname.setText(mySong.getName());
+            artistname.setText(mySong.getArtist());
+            mp.reset();
+            mp.setDataSource(mySong.getUrl());
+            mp.prepare();
+            mp.start();
+            state = "play";
+            play_pause.setImageResource(R.drawable.pause);
+        }
+    }
+
+    public void startThread() {
+        Handler mHandler = new Handler();
+        //Make sure you update Seekbar on UI thread
+        MusicActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 try {
                     if (mp != null) {
                         int mCurrentPosition = mp.getCurrentPosition() / 1000;
-                        if (!isplay || currentSongPosition == position)
-                            seekBar.setProgress(mCurrentPosition);
-                        else seekBar.setProgress(0);
-                    } else {
-                        Log.v("Medial Player", "Media player Holds Null");
+                        if (!prev_next) seekBar.setProgress(mCurrentPosition);
+                        mp.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                            @Override
+                            public void onCompletion(MediaPlayer mp) {
+                                seekBar.setProgress(0);
+                                play_pause.setImageResource(R.drawable.play);
+                                state = "pause";
+                                mp.seekTo(0);
+                                mp = null;
+                            }
+                        });
                     }
-                    mHandler.postDelayed(this, 1000);
                 } catch (Exception e) {
-                    seekBar.setProgress(0);
-                    play_pause.setImageResource(R.drawable.play);
-                    mp = null;
-                    state = "play";
                     e.printStackTrace();
                 }
+                mHandler.postDelayed(this, 1000);
+
             }
         });
     }
 
-    private void stopPlaying() {
-        if (isplay && currentSongPosition != position) {
-            state = "pause";
-            play_pause.setImageResource(R.drawable.pause);
-            if (mp != null && mp.isPlaying()) mp.pause();
-            startPlaying(getNextPrevSong());
-        } else if (currentSongPosition == position) {
-            if (state.equals("pause")) {
-                state = "play";
-                try {
-                    if (mp != null && mp.isPlaying()) {
-                        System.out.println("mp!=null");
-                        mp.pause();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                play_pause.setImageResource(R.drawable.play);
-            }
-        } else {
-            try {
-                if (mp != null && !mp.isPlaying()) {
-                    System.out.println("mp!=null");
-                    mp.start();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            state = "play";
-            play_pause.setImageResource(R.drawable.play);
-        }
-
-    }
-
-    private void nextSong() {
-        if (position < SongData.getInstance().getListOfSongs().size() - 1) {
-            play_pause.setImageResource(R.drawable.play);
-            Song song = SongData.getInstance().getListOfSongs().get(position + 1);
-            position = position + 1;
-            if (currentSongPosition == position) {
-                if (state.equals("pause")) {
-                    play_pause.setImageResource(R.drawable.pause);
-                }
-            } else seekBar.setProgress(0);
-
-            songName.setText(song.getName());
-            artistName.setText(song.getArtist());
-
-            setNextPrevSong(song);
-            nextOrPrevActive = true;
-            isplay = true;
-        } else {
-            Log.v("listOfSongs: ", "No Song exist in this position");
-        }
-    }
-
-
-    private void prevSong() {
-        if (position > 0) {
-            play_pause.setImageResource(R.drawable.play);
-            Song song = SongData.getInstance().getListOfSongs().get(position - 1);
-            songName.setText(song.getName());
-            artistName.setText(song.getArtist());
-            position -= 1;
-            isplay = true;
-            if (currentSongPosition == position) {
-                System.out.println("prev wala");
-                if (state.equals("pause")) {
-                    play_pause.setImageResource(R.drawable.pause);
-                }
-            } else seekBar.setProgress(0);
-            nextOrPrevActive = true;
-            setNextPrevSong(song);
-        } else {
-            Log.v("listOfSongs: ", "No Song exist in this position");
-        }
-    }
-
-    private void setNextPrevSong(Song song) {
-        this.nextSong = song;
-    }
-
-    private Song getNextPrevSong() {
-        return this.nextSong;
-    }
-
-    void prepareSong(Song mySong) {
-        if (mySong.getUrl() != null) {
-            firstTime = false;
-            mp = null;
-            seekBar.setProgress(0);
-            if (mp == null) {
-                mp = new MediaPlayer();
-                try {
-                    mp.setDataSource(mySong.getUrl());
-                    currentSongPosition = position;
-                    mp.prepare();
-                    seekBar.setMax(mp.getDuration() / 1000);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-        }
-
-    }
 
 }
