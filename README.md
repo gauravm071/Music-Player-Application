@@ -1,4 +1,6 @@
 # Music-Player-Application
 A simple music player Application which plays songs contain in your smartphone
-![WhatsApp Image 2020-11-30 at 8 02 55 PM](https://user-images.githubusercontent.com/56672381/100622884-6a0f1500-3347-11eb-8dfa-15d26c4503d4.jpeg)
-![WhatsApp Image 2020-11-30 at 8 02 55 PM (1)](https://user-images.githubusercontent.com/56672381/100622889-6b404200-3347-11eb-8d06-39d3d5bbebee.jpeg)
+
+Screen Shots
+![WhatsApp Image 2020-12-02 at 5 23 32 PM](https://user-images.githubusercontent.com/56672381/100869599-45d84300-34c3-11eb-994b-bcc510f22b3e.jpeg)
+![WhatsApp Image 2020-12-02 at 5 23 32 PM (1)](https://user-images.githubusercontent.com/56672381/100869612-496bca00-34c3-11eb-893b-cac9a6b15379.jpeg)
