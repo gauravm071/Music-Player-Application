@@ -26,7 +26,7 @@
         android:fontFamily="@font/berkshire_swash"
         android:text="@string/app_name"
         android:textAppearance="@style/TextAppearance.AppCompat.Display2"
-        android:textColor="@color/purple_500"
+        android:textColor="#0785EA"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.496"
